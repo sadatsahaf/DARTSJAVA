@@ -1,3 +1,3 @@
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location "$scriptDir\.."
-java -cp out darts.client.Client $args
+java -cp "out;lib/*" darts.client.Client $args

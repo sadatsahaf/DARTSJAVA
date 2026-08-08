@@ -40,6 +40,9 @@ public class Client {
 
         connection.setMessageHandler(ui::onMessageReceived);
         connection.setErrorHandler(ui::onError);
+        connection.setReconnectAttemptHandler(ui::onReconnectAttempt);
+        connection.setReconnectSuccessHandler(ui::onReconnectSuccess);
+        connection.setReconnectFailedHandler(ui::onReconnectFailed);
 
         try {
             connection.connect();

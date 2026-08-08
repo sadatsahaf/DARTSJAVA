@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR/.."
-exec java -cp out darts.client.Client "$@"
+exec java -cp "out:lib/*" darts.client.Client "$@"

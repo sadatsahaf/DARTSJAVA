@@ -2,31 +2,46 @@ package darts.server;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.sql.SQLException;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
- * Main server entry point implementing a single-threaded non-blocking Selector event loop.
- * Listens for incoming client connections, routes I/O events, and manages room registries.
+ * Main server entry point implementing a single-threaded non-blocking Selector event loop,
+ * with background ExecutorService worker pool for DB queries and PBKDF2 password hashing.
  */
 public class Server {
     public static final int DEFAULT_PORT = 8888;
 
     private final int port;
     private final Map<String, Room> rooms = new ConcurrentHashMap<>();
+    private final Database database;
+    private final AuthManager authManager;
+    private ExecutorService workerPool;
+
     private Selector selector;
     private ServerSocketChannel serverChannel;
     private volatile boolean running = false;
 
-    public Server(int port) {
+    public Server(int port, Database database) {
         this.port = port;
+        this.database = database;
+        this.authManager = new AuthManager(database);
+        this.workerPool = Executors.newFixedThreadPool(4);
         rooms.put("general", new Room("general"));
+    }
+
+    public Server(int port) {
+        this(port, new Database());
     }
 
     public static void main(String[] args) {
@@ -43,11 +58,29 @@ public class Server {
         server.start();
     }
 
+    public Database getDatabase() {
+        return database;
+    }
+
+    public AuthManager getAuthManager() {
+        return authManager;
+    }
+
+    public synchronized ExecutorService getWorkerPool() {
+        if (workerPool == null || workerPool.isShutdown()) {
+            workerPool = Executors.newFixedThreadPool(4);
+        }
+        return workerPool;
+    }
+
     /**
-     * Initializes the ServerSocketChannel, binds to the specified port, and enters the Selector event loop.
+     * Initializes Database, ServerSocketChannel, binds port, and enters the Selector loop.
      */
     public void start() {
         try {
+            System.out.println("Initializing embedded H2 database...");
+            database.init();
+
             selector = Selector.open();
             serverChannel = ServerSocketChannel.open();
             serverChannel.configureBlocking(false);
@@ -57,8 +90,26 @@ public class Server {
             running = true;
             System.out.println("DARTS Server started on port " + port + ". Event loop running...");
 
+            long lastSweepTime = System.currentTimeMillis();
+
             while (running) {
-                selector.select();
+                int selected = selector.select(5000);
+                long now = System.currentTimeMillis();
+
+                // Periodic 5s sweep for idle connections
+                if (now - lastSweepTime > 5000) {
+                    lastSweepTime = now;
+                    for (SelectionKey key : selector.keys()) {
+                        if (key.isValid() && key.attachment() instanceof ClientSession session) {
+                            session.checkIdleTimeout(now);
+                        }
+                    }
+                }
+
+                if (selected == 0) {
+                    continue;
+                }
+
                 Set<SelectionKey> selectedKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = selectedKeys.iterator();
 
@@ -95,6 +146,10 @@ public class Server {
                     }
                 }
             }
+        } catch (ClosedSelectorException ignored) {
+            // Normal shutdown when selector is closed
+        } catch (SQLException e) {
+            System.err.println("Database initialization error: " + e.getMessage());
         } catch (IOException e) {
             System.err.println("Server error: " + e.getMessage());
         } finally {
@@ -118,8 +173,25 @@ public class Server {
         return rooms.computeIfAbsent(name, Room::new);
     }
 
+    public ClientSession getSessionByUsername(String username) {
+        if (username == null || selector == null || !selector.isOpen()) {
+            return null;
+        }
+        for (SelectionKey key : selector.keys()) {
+            if (key.isValid() && key.attachment() instanceof ClientSession session) {
+                if (username.equals(session.getUsername())) {
+                    return session;
+                }
+            }
+        }
+        return null;
+    }
+
     public void stop() {
         running = false;
+        if (workerPool != null && !workerPool.isShutdown()) {
+            workerPool.shutdown();
+        }
         if (selector != null && selector.isOpen()) {
             try {
                 for (SelectionKey key : selector.keys()) {

@@ -19,16 +19,17 @@ import java.util.concurrent.TimeUnit;
  * and tests malformed input resiliency.
  */
 public class Phase1IntegrationTest {
-    private static final int TEST_PORT = 9999;
+    private static final int TEST_PORT = 9995;
 
     public static void main(String[] args) throws Exception {
         System.out.println("Starting Phase 1 Integration Test...");
 
-        // 1. Launch Server in background thread
-        Server server = new Server(TEST_PORT);
+        // 1. Launch Server in background thread with dedicated test DB
+        Database db = new Database("./test_phase1_db");
+        Server server = new Server(TEST_PORT, db);
         Thread serverThread = new Thread(server::start, "TestServer");
         serverThread.start();
-        Thread.sleep(500); // Allow server to bind and start selector loop
+        Thread.sleep(1500); // Allow server to initialize H2 DB and start selector loop
 
         try {
             // 2. Test multi-client unauthenticated broadcast chat
@@ -41,6 +42,8 @@ public class Phase1IntegrationTest {
         } finally {
             server.stop();
             serverThread.join(1000);
+            new java.io.File("./test_phase1_db.mv.db").delete();
+            new java.io.File("./test_phase1_db.trace.db").delete();
         }
     }
 

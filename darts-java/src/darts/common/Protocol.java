@@ -21,6 +21,7 @@ public final class Protocol {
     public static final String MSG_LOGIN_FAIL = "MSG_LOGIN_FAIL";
     public static final String MSG_JOIN_ROOM = "MSG_JOIN_ROOM";
     public static final String MSG_LEAVE_ROOM = "MSG_LEAVE_ROOM";
+    public static final String MSG_CREATE_ROOM = "MSG_CREATE_ROOM";
     public static final String MSG_ROOM_MSG = "MSG_ROOM_MSG";
     public static final String MSG_PRIVATE = "MSG_PRIVATE";
     public static final String MSG_USER_LIST = "MSG_USER_LIST";
@@ -28,10 +29,15 @@ public final class Protocol {
     public static final String MSG_HISTORY = "MSG_HISTORY";
     public static final String MSG_PRESENCE = "MSG_PRESENCE";
     public static final String MSG_ADMIN_KICK = "MSG_ADMIN_KICK";
+    public static final String MSG_ADMIN_MUTE = "MSG_ADMIN_MUTE";
+    public static final String MSG_ADMIN_UNMUTE = "MSG_ADMIN_UNMUTE";
     public static final String MSG_ERROR = "MSG_ERROR";
     public static final String MSG_PING = "MSG_PING";
     public static final String MSG_PONG = "MSG_PONG";
     public static final String MSG_QUIT = "MSG_QUIT";
+    public static final String MSG_KEY_GET = "MSG_KEY_GET";
+    public static final String MSG_KEY_PUT = "MSG_KEY_PUT";
+    public static final String MSG_KEY_RESP = "MSG_KEY_RESP";
 
     private Protocol() {
         // Prevent instantiation
