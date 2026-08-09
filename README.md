@@ -1,4 +1,4 @@
-# DARTS-Java — Distributed Asynchronous Real-time Talk System
+7# DARTS-Java — Distributed Asynchronous Real-time Talk System
 
 [![Java](https://img.shields.io/badge/Java-17%2B-blue.svg)](https://www.oracle.com/java/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -245,7 +245,7 @@ Explore the `docs/` directory for detailed design documentation:
 - **Tajrian Quazi**
 - **Abidur Rahman Dipto**
 - **Ahnaf Mushfiq Nafees**
-- **Md. Abdur Rahim**
+- **Joy Sarker**
 
 ---
 
